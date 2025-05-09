@@ -10,6 +10,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8f9fa;
+            padding-bottom: 5rem; /* Add padding to bottom to make space for new dropdown */
         }
         .navbar {
             margin-bottom: 1rem;
@@ -221,6 +222,13 @@
         #scrollToTopBtn:hover {
             background-color: #0b5ed7; 
         }
+        .github-checklist-loader {
+            position: fixed;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
 
 
         @media (max-width: 575.98px) {
@@ -250,6 +258,12 @@
             .navbar-nav .dropdown-menu { 
                 position: absolute; 
             }
+            .github-checklist-loader {
+                width: 90%; /* Make dropdown wider on small screens */
+            }
+            .github-checklist-loader .dropdown-menu {
+                width: 100%; /* Make menu full width of button */
+            }
         }
 
         @media print {
@@ -273,7 +287,8 @@
             #clearSearchBtn,
             #scrollToTopBtn, 
             #srAnnouncer,
-            #sortOptionsDropdown 
+            #sortOptionsDropdown,
+            .github-checklist-loader /* Hide new dropdown in print */
              { 
                 display: none !important;
             }
@@ -475,6 +490,19 @@
             Your checklist is empty. Click "+Item" to get started!
         </div>
     </div>
+
+    <div class="container github-checklist-loader mt-4 mb-5">
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" id="loadFromGithubBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-github"></i> Load Checklist from GitHub
+            </button>
+            <ul class="dropdown-menu w-100" aria-labelledby="loadFromGithubBtn" id="githubChecklistDropdown">
+                <li><hr class="dropdown-divider"></li>
+                 <li><span class="dropdown-item-text text-muted small">Select a checklist to load</span></li>
+            </ul>
+        </div>
+    </div>
+
 
     <button id="scrollToTopBtn" title="Go to top"><i class="bi bi-arrow-up-circle-fill"></i></button>
 
@@ -696,12 +724,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
         /**
-         * ChecklistApp - Main application IIFE
+         * CheckerCa - Main application IIFE
          */
-        const ChecklistApp = (() => {
+        const CheckerCa = (() => { // Renamed from ChecklistApp to CheckerCa
             
             const config = {
-                STORAGE_KEY: 'checklistApp_v13_final_touches', 
+                STORAGE_KEY: 'checkerCa_v1_base', // Updated key for new app name and version
                 DEFAULT_CHECKLIST_NAME: "Untitled Checklist",
                 UNCATEGORIZED_SECTION_NAME: "Uncategorized",
                 DEBOUNCE_DELAY: 300, 
@@ -709,7 +737,7 @@
                 ADD_ITEM_FLASH_DURATION: 1000, 
                 DELETE_ITEM_FADE_DURATION: 300, 
                 LAST_SAVED_UPDATE_INTERVAL: 60000, 
-                SORT_STORAGE_KEY: 'checklistApp_sortOrder_v1', 
+                SORT_STORAGE_KEY: 'checkerCa_sortOrder_v1', 
                 LAST_SAVED_TS_KEY_SUFFIX: '_timestamp', 
                 CSS_CLASSES: {
                     COMPLETED: 'completed',
@@ -727,7 +755,18 @@
                     FILTER_ACTIVE: 'filter-active',
                     DROPDOWN_ITEM_ACTIVE: 'active',
                     SEARCH_HIGHLIGHT: 'search-highlight'
-                }
+                },
+                // GitHub Checklist URLs
+                GITHUB_CHECKLISTS: [
+                    { name: "Apartment & House Hunting", url: "https://raw.githubusercontent.com/shfqrkhn/CheckerCa/refs/heads/main/Checklists/Apartment%20%26%20House%20Hunting%20Checklist.JSON" },
+                    { name: "DJI Mini 3 Pro Flight", url: "https://raw.githubusercontent.com/shfqrkhn/CheckerCa/refs/heads/main/Checklists/DJI%20Mini%203%20Pro%20Flight%20Checklist.JSON" },
+                    { name: "Daily Habit Tracker", url: "https://raw.githubusercontent.com/shfqrkhn/CheckerCa/refs/heads/main/Checklists/Daily%20Habit%20Tracker.JSON" },
+                    { name: "Daily Habits & Workout", url: "https://raw.githubusercontent.com/shfqrkhn/CheckerCa/refs/heads/main/Checklists/Daily%20Habits%20%26%20Workout%20Routine.JSON" },
+                    { name: "Destinations", url: "https://raw.githubusercontent.com/shfqrkhn/CheckerCa/refs/heads/main/Checklists/Destinations.JSON" },
+                    { name: "Moving Checklist", url: "https://raw.githubusercontent.com/shfqrkhn/CheckerCa/refs/heads/main/Checklists/Moving%20Checklist.JSON" },
+                    { name: "One Bag Travel", url: "https://raw.githubusercontent.com/shfqrkhn/CheckerCa/refs/heads/main/Checklists/One%20Bag%20Travel%20Checklist.JSON" },
+                    { name: "Road Trip", url: "https://raw.githubusercontent.com/shfqrkhn/CheckerCa/refs/heads/main/Checklists/Road%20Trip%20Checklist.JSON" }
+                ]
             };
 
             const DataManager = {
@@ -1030,6 +1069,7 @@
                     this.updateLastSavedTimestamp(); 
                     this._startLastSavedUpdater();
                     this.updateSortDropdownButton(DataManager.getSortOrder()); 
+                    this.populateGithubChecklistDropdown(); // New: Populate GitHub checklist dropdown
                 },
                 cacheDomElements: function() {
                     this.dom.addItemBtn = document.getElementById('addItemBtn');
@@ -1044,6 +1084,7 @@
                     this.dom.lastSavedTimestamp = document.getElementById('lastSavedTimestamp'); 
                     this.dom.sortOptionsDropdown = document.getElementById('sortOptionsDropdown'); 
                     this.dom.sortOptionsLinks = document.querySelectorAll('#sortOptionsDropdown + .dropdown-menu .dropdown-item'); 
+                    this.dom.githubChecklistDropdown = document.getElementById('githubChecklistDropdown'); // Cache GitHub dropdown UL
                     this.dom.itemModalEl = document.getElementById('itemModal');
                     this.dom.itemForm = document.getElementById('itemForm');
                     this.dom.itemId = document.getElementById('itemId'); this.dom.parentId = document.getElementById('parentId');
@@ -1092,6 +1133,24 @@
                             }
                             this.lastFocusedElement = null; 
                         });
+                    });
+                },
+                populateGithubChecklistDropdown: function() {
+                    const dropdownMenu = this.dom.githubChecklistDropdown;
+                    // Clear existing items except the placeholder/divider
+                    while (dropdownMenu.firstChild && !dropdownMenu.firstChild.classList?.contains('dropdown-divider')) {
+                        dropdownMenu.removeChild(dropdownMenu.firstChild);
+                    }
+
+                    config.GITHUB_CHECKLISTS.forEach(checklist => {
+                        const listItem = document.createElement('li');
+                        const link = document.createElement('a');
+                        link.className = 'dropdown-item';
+                        link.href = '#';
+                        link.textContent = checklist.name;
+                        link.dataset.url = checklist.url; // Store URL in data attribute
+                        listItem.appendChild(link);
+                        dropdownMenu.prepend(listItem); // Prepend to keep divider and text at bottom
                     });
                 },
                 renderChecklistName: function(name) {
@@ -1484,7 +1543,6 @@
 
                     UIManager.renderChecklist(displayData, filterText, isChecklistTrulyEmpty, lastEditedItemId || this._lastEditedItemId);
                     this._lastEditedItemId = null; 
-                    // Only set unsaved changes to false if it wasn't a checklist name change that triggered this
                     if (document.activeElement !== UIManager.dom.checklistNameInput) {
                         this.setUnsavedChanges(false); 
                     }
@@ -1599,9 +1657,9 @@
                         let nextFocusElement = null;
                         if (itemPath) {
                             const siblings = itemPath.list;
-                            if (siblings.length > 1) { // If there are other items at the same level
+                            if (siblings.length > 1) { 
                                 nextFocusElement = siblings[itemPath.index + 1] || siblings[itemPath.index -1];
-                            } else if (itemPath.fullPath.length > 1) { // If it was a sub-item and the only one
+                            } else if (itemPath.fullPath.length > 1) { 
                                 nextFocusElement = UIManager.dom.checklistContainer.querySelector(`.list-group-item[data-id="${itemPath.fullPath[itemPath.fullPath.length - 2].item.id}"]`);
                             }
                         }
@@ -1678,14 +1736,40 @@
                     });
 
                     window.addEventListener('beforeunload', (event) => {
-                        // Check specifically if the checklist name input has unsaved changes
                         if (UIManager.dom.checklistNameInput.value !== DataManager.getChecklistName()) {
-                            this.setUnsavedChanges(true); // Ensure flag is set if user typed and didn't blur
+                            this.setUnsavedChanges(true); 
                         }
                         if (this._hasUnsavedChanges) {
                             event.preventDefault(); 
                             event.returnValue = ''; 
                             return ''; 
+                        }
+                    });
+
+                    // Listener for GitHub checklist loader
+                    UIManager.dom.githubChecklistDropdown.addEventListener('click', async (event) => {
+                        event.preventDefault();
+                        const targetLink = event.target.closest('a.dropdown-item');
+                        if (targetLink && targetLink.dataset.url) {
+                            const url = targetLink.dataset.url;
+                            const checklistName = targetLink.textContent;
+                            UIManager.lastFocusedElement = UIManager.dom.githubChecklistDropdown.previousElementSibling; // The button
+                            try {
+                                UIManager.announceToSR(`Loading checklist: ${checklistName}`);
+                                const response = await fetch(url);
+                                if (!response.ok) {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                }
+                                const jsonData = await response.json();
+                                DataManager.importData(jsonData);
+                                this.refreshChecklistDisplay();
+                                UIManager.showAlert(`Checklist "${DataManager.getChecklistName()}" loaded from GitHub.`, 'success');
+                                UIManager.announceToSR(`Checklist ${DataManager.getChecklistName()} loaded.`);
+                            } catch (err) {
+                                UIManager.showAlert(`Error loading checklist "${checklistName}" from GitHub: ${err.message}`, 'danger');
+                                UIManager.announceToSR(`Error loading checklist ${checklistName}.`);
+                                console.error("Error loading checklist from GitHub:", err);
+                            }
                         }
                     });
 
@@ -1782,5 +1866,5 @@
             };
             return { init: AppCore.init.bind(AppCore) };
         })();
-        document.addEventListener('DOMContentLoaded', ChecklistApp.init);
+        document.addEventListener('DOMContentLoaded', CheckerCa.init); // Renamed ChecklistApp.init to CheckerCa.init
     </script></body></html>
