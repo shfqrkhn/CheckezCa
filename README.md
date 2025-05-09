@@ -1,5 +1,7 @@
 # CheckerCa: Advanced Checklist Manager
 
+Online demo: https://shfqrkhn.github.io/CheckerCa/
+
 ## Overview
 
 CheckerCa is a single-file HTML/CSS/JS app for hierarchical checklists. Uses Bootstrap 5 & `localStorage`. Features rich tasks, sub-tasks, sorting, search/filter, progress tracking, and JSON import/export.
