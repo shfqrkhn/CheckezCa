@@ -1,4 +1,4 @@
-# CheckerCa: Advanced Checklist Manager
+# CheckerCa - Advanced Checklist Manager
 
 Online demo: https://shfqrkhn.github.io/CheckerCa/
 
